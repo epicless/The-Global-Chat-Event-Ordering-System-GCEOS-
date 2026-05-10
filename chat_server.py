@@ -3,8 +3,20 @@ import threading
 import json
 from lamport_clock import LamportClock
 
-HOST = '127.0.0.1'
-PORT = 6000
+# Load configuration from config file (no hardcoded addresses)
+def load_config():
+    try:
+        with open('config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("[ERROR] config.json not found. Please create configuration file.")
+        exit(1)
+
+config = load_config()
+HOST = config['chat_server']['host']
+PORT = config['chat_server']['port']
+NAMING_SERVER_HOST = config['naming_server']['host']
+NAMING_SERVER_PORT = config['naming_server']['port']
 
 clients = []
 messages = []
@@ -17,7 +29,7 @@ def register_with_naming_server():
 
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    client.connect(('127.0.0.1', 5000))
+    client.connect((NAMING_SERVER_HOST, NAMING_SERVER_PORT))
 
     message = {
         'type': 'register',
@@ -67,15 +79,18 @@ def handle_client(conn, addr):
 
             updated_time = clock.update(received_time)
 
-            # Store chat event
+            # Store chat event with both client and server timestamps
             messages.append({
                 'username': message['username'],
                 'text': message['text'],
-                'timestamp': updated_time
+                'client_timestamp': received_time,  # When user typed it
+                'server_timestamp': updated_time,    # When server received it
+                'timestamp': received_time           # Display timestamp (client's)
             })
 
-            # Event Ordering System
-            messages.sort(key=lambda x: x['timestamp'])
+            # Event Ordering System - Sort by client timestamp (true chronological order)
+            # Use server timestamp as tiebreaker for simultaneous messages
+            messages.sort(key=lambda x: (x['client_timestamp'], x['server_timestamp']))
 
             print("\n====== ORDERED EVENTS ======")
 
