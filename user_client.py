@@ -3,6 +3,19 @@ import threading
 import json
 from lamport_clock import LamportClock
 
+# Load configuration from config file (no hardcoded addresses)
+def load_config():
+    try:
+        with open('config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("[ERROR] config.json not found. Please create configuration file.")
+        exit(1)
+
+config = load_config()
+NAMING_SERVER_HOST = config['naming_server']['host']
+NAMING_SERVER_PORT = config['naming_server']['port']
+
 clock = LamportClock()
 
 
@@ -11,7 +24,7 @@ def lookup_server():
 
     naming_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    naming_client.connect(('127.0.0.1', 5000))
+    naming_client.connect((NAMING_SERVER_HOST, NAMING_SERVER_PORT))
 
     request = {
         'type': 'lookup',
