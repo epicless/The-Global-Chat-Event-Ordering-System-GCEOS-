@@ -2,8 +2,18 @@ import socket
 import threading
 import json
 
-HOST = '127.0.0.1'
-PORT = 5000
+# Load configuration from config file (no hardcoded addresses)
+def load_config():
+    try:
+        with open('config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("[ERROR] config.json not found. Please create configuration file.")
+        exit(1)
+
+config = load_config()
+HOST = config['naming_server']['host']
+PORT = config['naming_server']['port']
 
 services = {}
 
